@@ -1,0 +1,137 @@
+---
+title: "Measuring socio economic status"
+author: "Muturi"
+date: "2024-03-09"
+output: html_document
+---
+
+## Constructing socio-economic status index:using principal components analysis
+This project explores the construction of a socioeconomic index using Principal Component Analysis (PCA) applied to a household sample dataset from the Demographic and Health Surveys (DHS). The aim is to create a wealth index that reflects the economic status of households based on their ownership of various assets.Generally PCA works best when asset variables are correlated,
+but also when the distribution of variables varies across
+cases, or in this instance, households. It is the assets that
+are more unequally distributed between households that
+are given more weight in PCA (McKenzie 2003). Variables
+with low standard deviations would carry a low weight
+from the PCA; for example, an asset which all households
+own or which no households own (i.e. zero standard
+deviation) would exhibit no variation between households
+and would be zero weighted, and so of little use in
+differentiating SES.
+
+```{r, include=FALSE}
+library (tidyverse)
+library(haven)
+library(factoextra)
+```
+
+```{r}
+AssetNew <- read_dta("AssetNew.dta")%>%select(2:14)
+
+
+
+```
+*The dataset has 13 columns namely*:
+
+_s1(has electricity)
+
+_s2(has radio)
+
+_s3(has television)
+
+_s4(has refrigerator)
+
+_s5(has bicycle)
+
+_s6(has motorcycle/scooter)
+
+_s7(has car/truck/minibus)
+
+_s8(has mobile telephone)
+
+_s9(has boat with a motor)
+
+_s10(has a computer)
+
+_s11(has bank account)
+
+_s12(owns land usable for agriculture)
+
+_s13(owns livestock,herds or farm animals)
+
+**checking correlation**
+
+Before creating a wealth index, it's important to check if the variables are correlated. Principal Component Analysis (PCA) works best when variables are related to each other. This ensures that PCA accurately captures wealth patterns. Checking correlations helps make sure that PCA gives us a good understanding of socioeconomic status.
+
+```{r}
+cor(AssetNew)
+```
+
+**Applying PCA and construction of a scree plot**
+
+Principal Component Analysis (PCA) is applied to the dataset `AssetNew` using the `princomp()` function. This technique identifies patterns and captures the most significant sources of variation in the data. The resulting PCA model, stored in the variable `Asset`, can help understand the underlying structure of the dataset in terms of its principal components.
+
+To assess the importance of each principal component, a scree plot is constructed using the `fviz_eig()` function. This plot displays the eigenvalues associated with each component, indicating the proportion of variance explained by each one. By analyzing the scree plot, one can determine the number of principal components needed to retain most of the variance in the dataset.
+
+```{r}
+Asset<-princomp(AssetNew)
+fviz_eig(Asset, addlabels = TRUE)
+```
+
+**Constituents of PC1**
+
+Ideally, we are aiming to use the first component to construct socioeconomic status (SES). Therefore, it is important to assess the contribution of other variables to PC1. The `fviz_cos2()` function is applied to the PCA model `Asset`, focusing on the variance of variables represented by the first principal component (axes = 1). This visualization provides insight into the contribution of individual variables to the variability captured by the first principal component. Higher values indicate that a variable contributes more to the variability explained by the first principal component. This analysis helps understand which variables are most influential in shaping the first principal component and, by extension, the underlying structure of the dataset.
+
+```{r}
+fviz_cos2(Asset, choice = "var", axes = 1)
+```
+
+**Extract scores for the first principal component and construct a histogram**
+
+
+The purpose of the first code is to extract the scores of the first principal component (PC1) from the PCA model Asset applied to the original dataset `AssetNew`. This is done using the `predict()` function, which calculates the scores based on the principal component loadings and the original data. PC1 is often extracted because it contains the most relevant information about the underlying structure of the data.
+Subsequently, a histogram is constructed to assess the distribution of scores along PC1. This histogram provides insight into the normality of the distribution of PC1 scores.
+
+```{r}
+scores <- predict(Asset, newdata = AssetNew)[, 1]
+hist(scores, main = "Histogram of First Principal Component Scores", xlab = "Scores")
+```
+
+**Applying SES cut off points **
+
+cut-off points are made  to differentiate households into broad
+socio-economic categories, and the approaches used
+are either arbitrarily defined (based on the assumption
+SES is uniformly distributed), or data driven. Commonly
+used arbitrary cut-off points are classification of the
+lowest 40% of households into ‘poor’, the highest 20%
+as ‘rich’ and the rest as the ‘middle’ group (Filmer and
+Pritchett 2001), or the division of households into
+quintiles (Gwatkin et al. 2000)
+
+```{r}
+percentiles <- quantile(scores, probs = c(0.4, 0.8))
+threshold_poor <- percentiles[1]
+threshold_rich <- percentiles[2]
+categorize_score <- function(score) {
+  if (score <= threshold_poor) {
+    return("Poor")
+  } else if (score <= threshold_rich) {
+    return("Middle")
+  } else {
+    return("Rich")
+  }
+}
+categories <- sapply(scores, categorize_score)
+
+table(categories)
+```
+**Adding the scores to the original **
+
+Finally you add the scores to the original dataset to provide an opportunity for more analysis such as  a multivariate model of factors associated with delivery at a health facility,etc
+
+```{r}
+AssetNew$Wealth_Index <- scores
+AssetNew$Wealth_Category <- categories
+```
+
+
