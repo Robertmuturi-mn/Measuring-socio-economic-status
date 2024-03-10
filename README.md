@@ -19,5 +19,5 @@ The project utilizes R programming language for data analysis and visualization.
 The project categorizes households into broad socioeconomic categories, such as 'Poor', 'Middle', and 'Rich', based on the scores derived from PCA. Cutoff points for categorization are determined either arbitrarily or using quintiles, with the latter approach ensuring a more uniform distribution of socioeconomic scores across groups.
 
 ## installation
-Click and download the html file to view the step by step process
+Click and download the html file to view the step by step process.
 
